@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: teechart-animations.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: teechart-animations.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @preserve TeeChart(tm) for JavaScript(tm)
+ * @fileOverview TeeChart for JavaScript(tm)
+ * v1.4 December 2012
+ * Copyright(c) 2012 by Steema Software SL. All Rights Reserved.
+ * http://www.steema.com
+ *
+ * Licensed with commercial and non-commercial attributes,
+ * specifically: http://www.steema.com/licensing/html5
+ *
+ * JavaScript is a trademark of Oracle Corporation.
+ */
+
+/*global exports */
+
+/**
+ * @author &lt;a href="mailto:david@steema.com">Steema Software&lt;/a>
+ * @version 1.4
+ */
+
+/**
+ * @namespace TeeChart namespace, contains all classes and methods.
+ */
+var Tee=Tee || {};
+
+(function() {
+ "use strict";
+
+if (typeof exports !== 'undefined') exports.Tee=Tee;
+
+/**
+ * @returns {Number} Returns the integer part of value, without decimals, rounded to lower.
+ */
+function trunc(value) {
+  return value | 0;
+}
+
+/**
+ * @constructor
+ * @augments Tee.Tool
+ * @class Base abstract class to perform Animations.
+ * @property {Number} [duration=500] Duration in milliseconds of the animation.
+ * @property {boolean} [running=false] Read-only, returns if the animation is currently running.
+ */
+ /*
+Tee.Animation=function(target, onstep) {
+  Tee.Tool.call(this,target);
+
+  this.active=true;
+  this.mode="linear";
+  this.duration=500;
+  this.items=[];
+  this.running=false;
+
+  if (target)
+    if (target instanceof Tee.Chart)
+       this.chart=target;
+    else
+    if (target instanceof Tee.Animation) {
+       this.chart=target.chart;
+       target.items.push(this);
+    }
+
+  var o=null;
+
+  this.animate=function(chart) {
+    if (!this.running) {
+      this.running=true;
+
+      if (chart) this.chart=chart;
+
+      this.init=new Date().getTime();
+
+      o=this;
+
+      o.start();
+      for(var t=0, i; i=o.items[t++];) if (i.active) { i.chart=o.chart; i.start(); }
+
+      o.chart.draw();
+      requestAnimFrame(this.step, this);
+    }
+  }
+
+  this.start=function() {}
+  this.stop=function() {}
+
+  this.doStep=function(f) { if (onstep) onstep(f); }
+
+  this.step=function() {
+    var now=new Date().getTime(),
+        t, i, tmp=(now-o.init)/o.duration,
+        f= o.mode=="linear" ? tmp : Math.pow(2,10*(tmp-1));
+
+    if ((f>=0) &amp;&amp; (f&lt;1)) {
+      o.doStep(f);
+
+      for(t=0; i=o.items[t++];)
+        if (i.active) {
+          i.chart=o.chart;
+          i.doStep(f);
+        }
+
+      o.chart.draw();
+      requestAnimFrame(o.step,o);
+    }
+    else {
+      o.stop();
+      for(t=0; i=o.items[t++];) if (i.active) { i.chart=o.chart; i.stop(); }
+
+      if (o.onstop) o.onstop(o);
+
+      o.running=false;
+      
+      o.chart.draw();
+    }
+  }
+}
+
+Tee.Animation.prototype=new Tee.Tool;
+*/
+
+/**
+ * @constructor
+ * @augments Tee.Animation
+ * @class Fades in/out chart elements.
+ */
+Tee.FadeAnimation=function(target) {
+  Tee.Animation.call(this,target);
+
+  this.kind="in"; // in, out
+
+  var o=this, fa;
+
+  this.fade={}
+
+  this.setTransp=function(value) {
+
+    if (o.kind=="out") value=1-value;
+
+    if (fa.legend)
+        o.chart.legend.format.transparency=value;
+
+    if (fa.walls)
+        o.chart.walls.transparency=value;
+
+    if (fa.series)
+        o.chart.series.each(function(s) { s.format.transparency=value; });
+
+    if (fa.marks)
+        o.chart.series.each(function(s) { s.marks.transparency=value; });
+
+    if (fa.title)
+        o.chart.title.format.transparency=value;
+
+    if (fa.axes)
+        o.chart.axes.transparency=value;
+
+    if (fa.panel)
+        o.chart.panel.format.transparency=value;
+  }
+
+  this.start=function() { fa=this.fade; this.setTransp(1); }
+  this.stop=function() { this.setTransp(0); }
+  this.doStep=function(f) { o.setTransp(1-f); }
+}
+
+Tee.FadeAnimation.prototype=new Tee.Animation();
+
+/**
+ * @constructor
+ * @augments Tee.Animation
+ * @class Animates series data
+ * @property {Tee.Series} series Optional Tee.Series object to animate. When null, all series and axes are animated.
+ * @property {String} [kind="axis"] Animation style. Can be: axis, left, top, right, bottom, x, y, each, all, zoomin, zoomout.
+ */
+Tee.SeriesAnimation=function(target) {
+  Tee.Animation.call(this,target);
+
+  if (target instanceof Tee.Series) {
+    this.series=target;
+    this.chart=target.chart;
+  }
+  else
+    this.series=null;
+
+  this.oldmin=0;
+  this.oldmax=0;
+  this.oldauto=true;
+
+  var scaling=1, o=this;
+
+  this.kind="axis"; // "left", "right", "top", "bottom", "axis", "x", "y", "zoomin", "zoomout", "each", "all"
+
+  function changeAxis(o,a,amount) {
+    a.automatic=false;
+    var mid=(o.oldmin+o.oldmax)*0.5, range=(o.oldmax-o.oldmin)*0.5;
+    a.maximum=mid+amount*range;
+    a.minimum=mid-amount*range;
+  }
+
+ /**
+  * @returns {Tee.Axis} Returns the mandatory axis of the animated series, or null
+  * if no visible series exist.
+  */
+  this.getAxis=function() {
+    var s=this.series || this.chart.series.firstVisible();
+    return s ? s.mandatoryAxis : null;
+  }
+
+  this.doStep=function(f) {
+
+    var a=o.getAxis();
+    if (a) a.automatic=false;
+
+    if (o.kind=="axis") {
+       changeAxis(o,a,1+(1-f)*100);
+    }
+    else
+    o.chart.series.each(function(s) {
+      if (o.series &amp;&amp; (o.series!==s)) return;
+
+      var v=s.data.values, old=s.data._old, t, len=v.length;
+
+      if (s instanceof Tee.Pie) {
+        s.rotation=360*(1-f);
+        scaling=f;
+      }
+      else
+      if (o.kind=="each") {
+       var stepf=trunc(len*f);
+
+       for(t=0; t&lt;stepf; t++) v[t]=old[t];
+
+       if (stepf&lt;len)
+          v[stepf]=old[stepf]*((len*f)-stepf);
+      }
+      else
+      if (o.kind=="all") {
+       for(t=0; t&lt;len; t++) v[t]=old[t]*f;
+      }
+      else
+      if (o.kind!="axis") {
+        scaling=f;
+      }
+    });
+  }
+
+  this.stop=function() {
+    var a=o.getAxis();
+
+    if (a) {
+      a.maximum=o.oldmax;
+      a.minimum=o.oldmin;
+      a.automatic=o.oldauto;
+    }
+
+    o.chart.series.each(function(s) {
+      if (s.transform)
+         s.transform=null;
+
+      if ((o.kind=="each") || (o.kind=="all"))
+      if (s.data._old)
+      {
+         s.data.values=s.data._old;
+         s.data._old=null;
+      }
+    });
+  }
+
+  this.start=function() {
+
+    var a=this.getAxis(), c=this.chart, ss=c.series.items,
+        w=c.chartRect.width, h=c.chartRect.height, t, s,
+        ww=c.bounds.width, hh=c.bounds.height;
+
+    if (ss.length===0)
+      return false;
+
+    this.oldmin=a.minimum;
+    this.oldmax=a.maximum;
+    this.oldauto=a.automatic;
+
+    for (t=0; t&lt;ss.length; t++) {
+      s=ss[t];
+
+      if (this.series &amp;&amp; (this.series!==s)) continue;
+
+      if (s instanceof Tee.Pie)
+        s.transform=function() { this.chart.ctx.scale(scaling, scaling); }
+      else
+      if ((this.kind=="each") || (this.kind=="all")) {
+        var v=s.data.values, tt, len=v.length;
+        s.data._old=v.slice(0);
+        for(tt=0; tt&lt;len; tt++) v[tt]=0;
+        a.automatic=false;
+      }
+      else
+      if (this.kind=="left")
+        s.transform=function() { this.chart.ctx.translate(-w*(1-scaling),0); }
+      else
+      if (this.kind=="right")
+        s.transform=function() { this.chart.ctx.translate(w*(1-scaling),0); }
+      else
+      if (this.kind=="x")
+        s.transform=function() { this.chart.ctx.scale(scaling, 1); }
+      else
+      if (this.kind=="y")
+        s.transform=function() { this.chart.ctx.scale(1, scaling); }
+      else
+      if (this.kind=="top")
+         s.transform=function() { this.chart.ctx.translate(0,-h*(1-scaling)); }
+      else
+      if (this.kind=="bottom")
+         s.transform=function() { this.chart.ctx.translate(0,h*(1-scaling)); }
+      else
+      if (this.kind=="zoomin")
+         s.transform=function() {
+           var ctx=this.chart.ctx;
+           ctx.translate(ww*0.5,hh*0.5);
+           ctx.scale(scaling,scaling);
+           ctx.translate(-ww*0.5,-hh*0.5);
+         }
+      else
+      if (this.kind="zoomout")
+         s.transform=function() {
+           var ctx=this.chart.ctx;
+           ctx.translate(ww*0.5,hh*0.5);
+           ctx.scale(2-scaling,2-scaling);
+           ctx.translate(-ww*0.5,-hh*0.5);
+         }
+    }
+
+    if (this.kind=="axis")
+       changeAxis(this,a,100);
+  }
+}
+
+Tee.SeriesAnimation.prototype=new Tee.Animation();
+
+
+/**
+ * @constructor
+ * @augments Tee.Animation
+ * @class Animates Series marks items.
+ */
+Tee.MarksAnimation=function(target) {
+  Tee.Animation.call(this,target);
+
+  if (target &amp;&amp; (target instanceof Tee.Series)) {
+    this.series=target;
+    this.chart=target.chart;
+  }
+  else
+    this.series=null;
+
+  this.current=-1;
+
+  var m=this.series.marks, o=this, old;
+
+  function marksText(series,index,result) {
+    if (index&lt;=o.current)
+       return result;
+    else
+       return "";
+  }
+
+  this.start=function() {
+     old=m.ongettext;
+     m.ongettext=marksText;
+  }
+
+  this.stop=function() {
+     m.ongettext=old;
+     this.current=-1;
+  }
+
+  this.doStep=function(f) {
+    o.current=trunc(o.series.data.values.length*f);
+  }
+}
+
+Tee.MarksAnimation.prototype=new Tee.Animation();
+
+}).call(this);
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Tee.AfricaMap.html">AfricaMap</a></li><li><a href="Tee.Animation.html">Animation</a></li><li><a href="Tee.Annotation.html">Annotation</a></li><li><a href="Tee.Area.html">Area</a></li><li><a href="Tee.AsiaMap.html">AsiaMap</a></li><li><a href="Tee.AustraliaMap.html">AustraliaMap</a></li><li><a href="Tee.Bar.html">Bar</a></li><li><a href="Tee.Bubble.html">Bubble</a></li><li><a href="Tee.Candle.html">Candle</a></li><li><a href="Tee.Chart.html">Chart</a></li><li><a href="Tee.Chart.Axes.html">Axes</a></li><li><a href="Tee.Chart.Axis.html">Axis</a></li><li><a href="Tee.Chart.Axis-Grid.html">Grid</a></li><li><a href="Tee.Chart.Axis-Labels.html">Labels</a></li><li><a href="Tee.Chart.Axis-Ticks.html">Ticks</a></li><li><a href="Tee.Chart.Axis-Title.html">Title</a></li><li><a href="Tee.Chart.Legend.html">Legend</a></li><li><a href="Tee.Chart.Legend-Symbol.html">Symbol</a></li><li><a href="Tee.Chart.Panel.html">Panel</a></li><li><a href="Tee.Chart.Scroll.html">Scroll</a></li><li><a href="Tee.Chart.SeriesList.html">SeriesList</a></li><li><a href="Tee.Chart.this.aspect.html">this.aspect</a></li><li><a href="Tee.Chart.this.walls.html">this.walls</a></li><li><a href="Tee.Chart.Title.html">Title</a></li><li><a href="Tee.Chart.Tools.html">Tools</a></li><li><a href="Tee.Chart.Wall.html">Wall</a></li><li><a href="Tee.Chart.Zoom.html">Zoom</a></li><li><a href="Tee.ChartImage.html">ChartImage</a></li><li><a href="Tee.CircularGauge.html">CircularGauge</a></li><li><a href="Tee.ColorGrid.html">ColorGrid</a></li><li><a href="Tee.CursorTool.html">CursorTool</a></li><li><a href="Tee.CustomBar.html">CustomBar</a></li><li><a href="Tee.CustomSeries.html">CustomSeries</a></li><li><a href="Tee.CustomSeries-Pointer.html">Pointer</a></li><li><a href="Tee.Data.html">Data</a></li><li><a href="Tee.Data.Dimension.html">Dimension</a></li><li><a href="Tee.Data.Metric.html">Metric</a></li><li><a href="Tee.Donut.html">Donut</a></li><li><a href="Tee.DragTool.html">DragTool</a></li><li><a href="Tee.Europe27Map.html">Europe27Map</a></li><li><a href="Tee.EuropeMap.html">EuropeMap</a></li><li><a href="Tee.FadeAnimation.html">FadeAnimation</a></li><li><a href="Tee.Font.html">Font</a></li><li><a href="Tee.Format.html">Format</a></li><li><a href="Tee.Gantt.html">Gantt</a></li><li><a href="Tee.Gradient.html">Gradient</a></li><li><a href="Tee.HorizArea.html">HorizArea</a></li><li><a href="Tee.HorizBar.html">HorizBar</a></li><li><a href="Tee.Line.html">Line</a></li><li><a href="Tee.Map.html">Map</a></li><li><a href="Tee.Margins.html">Margins</a></li><li><a href="Tee.MarksAnimation.html">MarksAnimation</a></li><li><a href="Tee.Palette.html">Palette</a></li><li><a href="Tee.PaletteSeries.html">PaletteSeries</a></li><li><a href="Tee.Pie.html">Pie</a></li><li><a href="Tee.Point.html">Point</a></li><li><a href="Tee.PointXY.html">PointXY</a></li><li><a href="Tee.Polar.html">Polar</a></li><li><a href="Tee.Rectangle.html">Rectangle</a></li><li><a href="Tee.Series.html">Series</a></li><li><a href="Tee.Series.Marks.html">Marks</a></li><li><a href="Tee.SeriesAnimation.html">SeriesAnimation</a></li><li><a href="Tee.Shadow.html">Shadow</a></li><li><a href="Tee.SouthAmericaMap.html">SouthAmericaMap</a></li><li><a href="Tee.Stroke.html">Stroke</a></li><li><a href="Tee.Surface.html">Surface</a></li><li><a href="Tee.SVGMap.html">SVGMap</a></li><li><a href="Tee.Three.html">Three</a></li><li><a href="Tee.Tool.html">Tool</a></li><li><a href="Tee.ToolTip.html">ToolTip</a></li><li><a href="Tee.USAMap.html">USAMap</a></li><li><a href="Tee.Volume.html">Volume</a></li><li><a href="Tee.WorldMap.html">WorldMap</a></li></ul><h3>Namespaces</h3><ul><li><a href="Tee.Data%252520namespace,%252520Multi-Dimensional%252520Charting..html"> Multi-Dimensional Charting.</a></li><li><a href="Tee%2520namespace,%2520Maps%2520_%2520Geographical%2520Charting..html"> Maps / Geographical Charting.</a></li><li><a href="Tee%2520namespace,%2520Three.js%25203D%2520Charting..html">js 3D Charting.</a></li><li><a href="TeeChart%2520Gauges%2520namespace,%2520contains%2520all%2520classes%2520and%2520methods..html"> contains all classes and methods.</a></li><li><a href="TeeChart%252520namespace,%252520contains%252520all%252520classes%252520and%252520methods..html"> contains all classes and methods.</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0-dev</a> on Sun May 03 2015 19:11:14 GMT+0200 (CEST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
