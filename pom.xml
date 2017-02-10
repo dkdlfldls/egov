@@ -380,7 +380,7 @@
 				<artifactId>maven-war-plugin</artifactId>
 				<version>2.2</version>
 				<configuration>
-					<webXml>/WEB-INF/web.xml</webXml>
+					<webXml>WebContent/WEB-INF/web.xml</webXml>
 					<warname>egovframework.guide-coreapp</warname>
 				</configuration>
 			</plugin>
