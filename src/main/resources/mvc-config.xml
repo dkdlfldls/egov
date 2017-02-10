@@ -9,11 +9,11 @@
 	
     <mvc:annotation-driven />
     <mvc:default-servlet-handler/>
-    <mvc:resources mapping="/resources/js/**" location="/WEB-INF/resources/js/"/>
+    <mvc:resources mapping="/resources/js/**" location="/WEB-INF/classes/resources/js/"/>
 
 	<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
 	        <!-- Example: a logical view name of 'showMessage' is mapped to '/WEB-INF/jsp/showMessage.jsp' -->
-	        <property name="prefix" value="/WEB-INF/view/"/>
+	        <property name="prefix" value="WEB-INF/classes/view/"/>
 	        <property name="suffix" value=".jsp"/>
 	</bean>
 	
