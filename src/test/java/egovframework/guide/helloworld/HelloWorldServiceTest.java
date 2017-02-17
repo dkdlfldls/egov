@@ -22,5 +22,10 @@ public class HelloWorldServiceTest {
 		HelloWorldService helloworld = (HelloWorldService)context.getBean("helloworld");
 		assertEquals( "Hello egov framework!!!", helloworld.sayHello() );
 	}
+	
+	@Test
+	public void failCalculatedly() {
+		assertEquals("a", "b");
+	}
 
 }

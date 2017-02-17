@@ -73,7 +73,7 @@ function addRandom(rows,cols) {
     surface.data.values[y]=row;
 
     for (var x=0; x<cols; x++)
-         row[x] = 500+ Math.cos(0.001*x*y)*(x*x-y*y);
+         row[x] = ((Math.random() * 1000) + 1 )+ Math.cos(0.001*x*y)*(x*x-y*y);
   }
 
   surface.dataChanged=true; // <-- force recalculating pixel colors
