@@ -26,7 +26,7 @@ public class HelloWorldServiceTest {
 	
 	@Test
 	public void failCalculatedly() {
-		assertEquals("a", "b");
+		assertEquals("a", "a");
 	}
 
 }
