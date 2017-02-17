@@ -23,6 +23,7 @@ public class HelloWorldServiceTest {
 		assertEquals( "Hello egov framework!!!", helloworld.sayHello() );
 	}
 	
+	
 	@Test
 	public void failCalculatedly() {
 		assertEquals("a", "b");
